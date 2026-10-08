@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- SUPABASE CLIENT STATE ---
     let supabaseClient = null;
-    let supabaseUrl = localStorage.getItem('cyber_supabase_url') || '';
-    let supabaseKey = localStorage.getItem('cyber_supabase_key') || '';
+    let supabaseUrl = localStorage.getItem('cyber_supabase_url') || 'https://oafuexonhltqqmmxmidx.supabase.co';
+    let supabaseKey = localStorage.getItem('cyber_supabase_key') || 'sb_publishable_traZ1FS5JE18NGJEgYTmNQ_irUzANyX';
 
     // --- WINNING COMBINATIONS ---
     const WINNING_COMBOS = [

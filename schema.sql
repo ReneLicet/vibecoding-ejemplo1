@@ -5,7 +5,7 @@
 
 -- 1. TABLA DE PARTIDAS (game_matches)
 CREATE TABLE IF NOT EXISTS public.game_matches (
-    id UUID DEFAULT gen_random_policy() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     mode VARCHAR(20) NOT NULL, -- 'pvp', 'ai-easy', 'ai-hard'
     player_x VARCHAR(50) DEFAULT 'Jugador X',
     player_o VARCHAR(50) DEFAULT 'IA Neural / Jugador O',
