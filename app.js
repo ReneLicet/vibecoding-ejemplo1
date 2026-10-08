@@ -1,5 +1,5 @@
 /**
- * CYBER TAC TOE - Game Engine & Interactive Controller
+ * CYBER TAC TOE - Game Engine & Supabase Database Integration
  * Tech Color Scheme: Red (#FF0055), Black (#0A0B0E), Yellow (#FFD600)
  */
 
@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameMode = 'ai-hard'; // 'pvp', 'ai-easy', 'ai-hard'
     let scores = { X: 0, O: 0, ties: 0 };
     let soundEnabled = true;
+    let moveCount = 0;
+
+    // --- SUPABASE CLIENT STATE ---
+    let supabaseClient = null;
+    let supabaseUrl = localStorage.getItem('cyber_supabase_url') || '';
+    let supabaseKey = localStorage.getItem('cyber_supabase_key') || '';
 
     // --- WINNING COMBINATIONS ---
     const WINNING_COMBOS = [
@@ -37,10 +43,148 @@ document.addEventListener('DOMContentLoaded', () => {
     const scoreTiesEl = document.getElementById('scoreTies');
     const labelO = document.getElementById('labelO');
 
+    const dbStatusDot = document.getElementById('dbStatusDot');
+    const dbStatusText = document.getElementById('dbStatusText');
+    const openConfigBtn = document.getElementById('openConfigBtn');
+    const closeConfigModalBtn = document.getElementById('closeConfigModalBtn');
+    const configModal = document.getElementById('configModal');
+    const saveSupabaseConfigBtn = document.getElementById('saveSupabaseConfigBtn');
+    const supabaseUrlInput = document.getElementById('supabaseUrlInput');
+    const supabaseKeyInput = document.getElementById('supabaseKeyInput');
+
+    const openLeaderboardBtn = document.getElementById('openLeaderboardBtn');
+    const leaderboardModal = document.getElementById('leaderboardModal');
+    const closeLeaderboardModalBtn = document.getElementById('closeLeaderboardModalBtn');
+    const leaderboardTbody = document.getElementById('leaderboardTbody');
+    const leaderboardLoading = document.getElementById('leaderboardLoading');
+    const leaderboardTableWrapper = document.getElementById('leaderboardTableWrapper');
+    const leaderboardEmpty = document.getElementById('leaderboardEmpty');
+
     const winningLineCanvas = document.getElementById('winningLineCanvas');
     const ctxLine = winningLineCanvas.getContext('2d');
     const particlesCanvas = document.getElementById('particlesCanvas');
     const ctxParticles = particlesCanvas.getContext('2d');
+
+    // --- INITIALIZE SUPABASE CLIENT ---
+    function initSupabase() {
+        if (supabaseUrl && supabaseKey && window.supabase) {
+            try {
+                supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+                dbStatusDot.className = 'status-dot online';
+                dbStatusText.textContent = 'BBDD: Supabase Cloud Conectado 🟢';
+            } catch (e) {
+                console.error('Error al conectar Supabase', e);
+                dbStatusDot.className = 'status-dot offline';
+                dbStatusText.textContent = 'BBDD: Error de conexión Supabase';
+            }
+        } else {
+            dbStatusDot.className = 'status-dot offline';
+            dbStatusText.textContent = 'BBDD: Modo Local (Sin Supabase)';
+        }
+    }
+
+    // --- SAVE MATCH TO SUPABASE DATABASE ---
+    async function saveMatchToSupabase(winner) {
+        if (!supabaseClient) return;
+
+        const playerXName = 'Jugador X';
+        const playerOName = gameMode === 'pvp' ? 'Jugador O' : (gameMode === 'ai-easy' ? 'IA Fácil' : 'IA Cyber Core');
+
+        try {
+            // 1. Insert Match Record into `game_matches` table
+            await supabaseClient.from('game_matches').insert([
+                {
+                    mode: gameMode,
+                    player_x: playerXName,
+                    player_o: playerOName,
+                    winner: winner, // 'X', 'O', or 'DRAW'
+                    moves_count: moveCount
+                }
+            ]);
+
+            // 2. Upsert Player Stats into `player_stats` table
+            const winnerName = winner === 'X' ? playerXName : (winner === 'O' ? playerOName : null);
+            if (winnerName) {
+                const { data: existingPlayer } = await supabaseClient
+                    .from('player_stats')
+                    .select('*')
+                    .eq('player_name', winnerName)
+                    .single();
+
+                if (existingPlayer) {
+                    await supabaseClient
+                        .from('player_stats')
+                        .update({
+                            wins: existingPlayer.wins + 1,
+                            current_streak: existingPlayer.current_streak + 1,
+                            best_streak: Math.max(existingPlayer.best_streak, existingPlayer.current_streak + 1),
+                            last_played_at: new Date().toISOString()
+                        })
+                        .eq('player_name', winnerName);
+                } else {
+                    await supabaseClient
+                        .from('player_stats')
+                        .insert([
+                            {
+                                player_name: winnerName,
+                                wins: 1,
+                                losses: 0,
+                                draws: 0,
+                                current_streak: 1,
+                                best_streak: 1
+                            }
+                        ]);
+                }
+            }
+        } catch (err) {
+            console.warn('Error al guardar en Supabase:', err);
+        }
+    }
+
+    // --- FETCH LEADERBOARD FROM SUPABASE ---
+    async function loadLeaderboard() {
+        leaderboardLoading.classList.remove('hidden');
+        leaderboardTableWrapper.classList.add('hidden');
+        leaderboardEmpty.classList.add('hidden');
+
+        if (!supabaseClient) {
+            leaderboardLoading.textContent = 'Configura las claves de Supabase para ver la tabla global en la nube.';
+            return;
+        }
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('player_stats')
+                .select('*')
+                .order('wins', { ascending: false })
+                .limit(10);
+
+            leaderboardLoading.classList.add('hidden');
+
+            if (error || !data || data.length === 0) {
+                leaderboardEmpty.classList.remove('hidden');
+                return;
+            }
+
+            leaderboardTbody.innerHTML = '';
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                const pts = (row.wins * 3) + (row.draws || 0);
+                tr.innerHTML = `
+                    <td class="text-yellow"><strong>${row.player_name}</strong></td>
+                    <td class="text-red">${row.wins}</td>
+                    <td>${row.losses || 0}</td>
+                    <td>${row.draws || 0}</td>
+                    <td><strong>${pts}</strong></td>
+                `;
+                leaderboardTbody.appendChild(tr);
+            });
+
+            leaderboardTableWrapper.classList.remove('hidden');
+        } catch (err) {
+            leaderboardLoading.textContent = 'Error al consultar Supabase. Revisa las claves.';
+        }
+    }
 
     // --- SOUND SYNTHESIZER (Web Audio API) ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -75,7 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
             osc.start(now);
             osc.stop(now + 0.12);
         } else if (type === 'win') {
-            // Cyber Victory chord
             [523.25, 659.25, 783.99, 1046.50].forEach((freq, index) => {
                 const o = audioCtx.createOscillator();
                 const g = audioCtx.createGain();
@@ -126,9 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 scores = JSON.parse(saved);
                 updateScoreboardUI();
-            } catch (e) {
-                console.error('Error loading saved scores', e);
-            }
+            } catch (e) {}
         }
     }
 
@@ -147,8 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
         boardState = ['', '', '', '', '', '', '', '', ''];
         currentPlayer = 'X';
         isGameActive = true;
+        moveCount = 0;
 
-        // Clear line canvas
         ctxLine.clearRect(0, 0, winningLineCanvas.width, winningLineCanvas.height);
 
         cells.forEach(cell => {
@@ -188,10 +329,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (boardState[index] !== '' || !isGameActive) return;
 
-        // Player move
         makeMove(index, currentPlayer);
 
-        // If AI mode and game still active, trigger AI turn
         if (isGameActive && gameMode !== 'pvp' && currentPlayer === 'O') {
             disableBoard(true);
             setTimeout(() => {
@@ -210,6 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function makeMove(index, player) {
         boardState[index] = player;
+        moveCount++;
         const cell = cells[index];
         cell.textContent = player === 'X' ? '✕' : '◯';
         cell.classList.add(player.toLowerCase());
@@ -252,19 +392,17 @@ document.addEventListener('DOMContentLoaded', () => {
         saveScores();
         updateScoreboardUI();
 
-        // Highlight winning cells
+        // Save match in Supabase
+        saveMatchToSupabase(winner);
+
         combo.forEach(idx => {
             cells[idx].classList.add('winning-cell');
         });
 
-        // Draw animated laser line
         drawWinningLine(combo, winner);
-
-        // Trigger victory sound & particles
         playSound('win');
         triggerCyberParticles(winner === 'X' ? '#ff0055' : '#ffd600');
 
-        // Status update
         const winnerName = winner === 'X' ? 'JUGADOR X' : (gameMode === 'pvp' ? 'JUGADOR O' : 'IA NEURAL');
         const colorClass = winner === 'X' ? 'text-red' : 'text-yellow';
         statusText.innerHTML = `🏆 <strong class="${colorClass}">${winnerName} HA GANADO!</strong>`;
@@ -275,6 +413,9 @@ document.addEventListener('DOMContentLoaded', () => {
         scores.ties++;
         saveScores();
         updateScoreboardUI();
+
+        // Save tie in Supabase
+        saveMatchToSupabase('DRAW');
 
         playSound('tie');
         statusText.innerHTML = `<strong class="text-yellow">¡EMPATE TÁCTICO!</strong>`;
@@ -328,7 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameMode === 'ai-easy') {
             targetIndex = getEasyAIMove();
         } else {
-            // Unbeatable Minimax
             targetIndex = getBestMinimaxMove();
         }
 
@@ -346,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
     }
 
-    // MINIMAX ALGORITHM (Imbatible)
+    // MINIMAX ALGORITHM
     function getBestMinimaxMove() {
         let bestScore = -Infinity;
         let move = null;
@@ -365,20 +505,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return move;
     }
 
-    const scoresMap = {
-        'O': 10,  // AI wins
-        'X': -10, // Player X wins
-        'tie': 0
-    };
+    const scoresMap = { 'O': 10, 'X': -10, 'tie': 0 };
 
     function minimax(board, depth, isMaximizing) {
         const winResult = checkWinner(board);
-        if (winResult) {
-            return scoresMap[winResult.winner] - (isMaximizing ? depth : -depth);
-        }
-        if (isBoardFull(board)) {
-            return scoresMap['tie'];
-        }
+        if (winResult) return scoresMap[winResult.winner] - (isMaximizing ? depth : -depth);
+        if (isBoardFull(board)) return scoresMap['tie'];
 
         if (isMaximizing) {
             let maxEval = -Infinity;
@@ -470,7 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- EVENT LISTENERS ---
+    // --- MODAL CONTROLS & EVENT LISTENERS ---
     cells.forEach(cell => cell.addEventListener('click', handleCellClick));
 
     restartGameBtn.addEventListener('click', () => {
@@ -499,7 +631,38 @@ document.addEventListener('DOMContentLoaded', () => {
         if (soundEnabled) playSound('click');
     });
 
+    // Supabase Config Modal Listeners
+    openConfigBtn.addEventListener('click', () => {
+        supabaseUrlInput.value = supabaseUrl;
+        supabaseKeyInput.value = supabaseKey;
+        configModal.classList.remove('hidden');
+    });
+
+    closeConfigModalBtn.addEventListener('click', () => {
+        configModal.classList.add('hidden');
+    });
+
+    saveSupabaseConfigBtn.addEventListener('click', () => {
+        supabaseUrl = supabaseUrlInput.value.trim();
+        supabaseKey = supabaseKeyInput.value.trim();
+        localStorage.setItem('cyber_supabase_url', supabaseUrl);
+        localStorage.setItem('cyber_supabase_key', supabaseKey);
+        configModal.classList.add('hidden');
+        initSupabase();
+    });
+
+    // Leaderboard Modal Listeners
+    openLeaderboardBtn.addEventListener('click', () => {
+        leaderboardModal.classList.remove('hidden');
+        loadLeaderboard();
+    });
+
+    closeLeaderboardModalBtn.addEventListener('click', () => {
+        leaderboardModal.classList.add('hidden');
+    });
+
     // --- INIT APP ---
+    initSupabase();
     loadSavedScores();
     initGame();
 });

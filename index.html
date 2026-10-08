@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber Tac Toe | Juego Tecnológico Tres en Raya</title>
-    <meta name="description" content="Un juego de Tres en Raya (Tic Tac Toe) con estética tecnológica futurista en rojo, negro y amarillo, Inteligencia Artificial imbatible y efectos sonoros.">
+    <title>Cyber Tac Toe | Juego Tecnológico con Supabase</title>
+    <meta name="description" content="Un juego de Tres en Raya (Tic Tac Toe) futurista en rojo, negro y amarillo, con IA Imbatible e integración con Supabase.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <!-- Supabase JS Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="cyber-background">
@@ -21,11 +23,23 @@
         <!-- Header -->
         <header class="game-header">
             <div class="logo-badge">
-                <span class="tech-tag">v2.5 // CYBER CORE</span>
+                <span class="tech-tag">v3.0 // SUPABASE CLOUD</span>
             </div>
             <h1 class="game-title">CYBER <span class="text-red">TAC</span> <span class="text-yellow">TOE</span></h1>
             <p class="game-subtitle">DESAFÍO TÁCTICO // MODO TECH NEON</p>
         </header>
+
+        <!-- Supabase Connection Status Bar -->
+        <div class="supabase-status-bar glass-panel">
+            <div class="db-status-info">
+                <span id="dbStatusDot" class="status-dot offline"></span>
+                <span id="dbStatusText" class="db-text">BBDD: Modo Local (Sin Supabase)</span>
+            </div>
+            <div class="db-actions">
+                <button id="openLeaderboardBtn" class="cyber-button secondary tiny-btn">🏆 CLASIFICACIÓN</button>
+                <button id="openConfigBtn" class="cyber-button icon-btn tiny-btn" title="Configurar Supabase">⚙️ BBDD</button>
+            </div>
+        </div>
 
         <!-- Main Controls Panel -->
         <div class="controls-panel glass-panel">
@@ -108,6 +122,61 @@
 
         <!-- Cyber Particles Canvas -->
         <canvas id="particlesCanvas" class="particles-canvas"></canvas>
+
+        <!-- SUPABASE CONFIG MODAL -->
+        <div id="configModal" class="modal-backdrop hidden">
+            <div class="modal-content glass-panel">
+                <div class="modal-header">
+                    <h2 class="modal-title">⚙️ CONFIGURAR SUPABASE BBDD</h2>
+                    <button id="closeConfigModalBtn" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="modal-desc">Conecta tu proyecto a Supabase para guardar partidas y la tabla global de clasificación.</p>
+                    <div class="input-group">
+                        <label for="supabaseUrlInput">SUPABASE PROJECT URL</label>
+                        <input type="text" id="supabaseUrlInput" placeholder="https://xyzcompany.supabase.co" class="cyber-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="supabaseKeyInput">SUPABASE ANON KEY</label>
+                        <input type="password" id="supabaseKeyInput" placeholder="eyJhbGciOiJIUzI1Ni..." class="cyber-input">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="saveSupabaseConfigBtn" class="cyber-button primary">CONECTAR Y GUARDAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEADERBOARD MODAL -->
+        <div id="leaderboardModal" class="modal-backdrop hidden">
+            <div class="modal-content glass-panel wide-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">🏆 TABLA DE POSICIONES (SUPABASE)</h2>
+                    <button id="closeLeaderboardModalBtn" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="leaderboardLoading" class="loading-state">Cargando datos desde Supabase...</div>
+                    <div id="leaderboardTableWrapper" class="table-wrapper hidden">
+                        <table class="cyber-table">
+                            <thead>
+                                <tr>
+                                    <th>JUGADOR</th>
+                                    <th>VICTORIAS</th>
+                                    <th>DERROTAS</th>
+                                    <th>EMPATES</th>
+                                    <th>PTS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboardTbody">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="leaderboardEmpty" class="empty-state hidden">No hay partidas registradas en Supabase aún.</div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script src="app.js"></script>
