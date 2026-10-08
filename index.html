@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Tac Toe | Juego Tecnológico Tres en Raya</title>
+    <meta name="description" content="Un juego de Tres en Raya (Tic Tac Toe) con estética tecnológica futurista en rojo, negro y amarillo, Inteligencia Artificial imbatible y efectos sonoros.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="cyber-background">
+        <div class="grid-overlay"></div>
+        <div class="glow-sphere glow-red"></div>
+        <div class="glow-sphere glow-yellow"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="game-header">
+            <div class="logo-badge">
+                <span class="tech-tag">v2.5 // CYBER CORE</span>
+            </div>
+            <h1 class="game-title">CYBER <span class="text-red">TAC</span> <span class="text-yellow">TOE</span></h1>
+            <p class="game-subtitle">DESAFÍO TÁCTICO // MODO TECH NEON</p>
+        </header>
+
+        <!-- Main Controls Panel -->
+        <div class="controls-panel glass-panel">
+            <div class="control-group">
+                <label for="gameModeSelect" class="control-label">MODO DE JUEGO</label>
+                <div class="select-wrapper">
+                    <select id="gameModeSelect" class="cyber-select">
+                        <option value="pvp">👥 Jugador vs Jugador</option>
+                        <option value="ai-easy">🤖 vs IA (Fácil)</option>
+                        <option value="ai-hard" selected>🧠 vs IA Cyber Core (Imbatible)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group buttons-group">
+                <button id="soundToggleBtn" class="cyber-button icon-btn" title="Alternar Sonido">
+                    <span id="soundIcon">🔊</span> <span class="btn-text">SONIDO</span>
+                </button>
+                <button id="resetScoresBtn" class="cyber-button secondary" title="Reiniciar Marcador">
+                    <span>RESET STATS</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Scoreboard -->
+        <div class="scoreboard glass-panel">
+            <div class="score-card player-x-card active" id="cardX">
+                <div class="player-icon text-red">✕</div>
+                <div class="player-info">
+                    <span class="player-label" id="labelX">JUGADOR X</span>
+                    <span class="score-value text-red" id="scoreX">0</span>
+                </div>
+            </div>
+
+            <div class="score-card tie-card">
+                <div class="player-icon text-muted">═</div>
+                <div class="player-info">
+                    <span class="player-label">EMPATES</span>
+                    <span class="score-value text-yellow" id="scoreTies">0</span>
+                </div>
+            </div>
+
+            <div class="score-card player-o-card" id="cardO">
+                <div class="player-icon text-yellow">◯</div>
+                <div class="player-info">
+                    <span class="player-label" id="labelO">IA NEURAL</span>
+                    <span class="score-value text-yellow" id="scoreO">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Indicator -->
+        <div class="status-banner glass-panel">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <span id="statusText" class="status-text">TURNO DE: <strong class="text-red">JUGADOR X</strong></span>
+        </div>
+
+        <!-- Game Board Area -->
+        <div class="board-wrapper">
+            <canvas id="winningLineCanvas" class="winning-canvas"></canvas>
+            <div class="board" id="board">
+                <button class="cell" data-index="0" aria-label="Casilla 1"></button>
+                <button class="cell" data-index="1" aria-label="Casilla 2"></button>
+                <button class="cell" data-index="2" aria-label="Casilla 3"></button>
+                <button class="cell" data-index="3" aria-label="Casilla 4"></button>
+                <button class="cell" data-index="4" aria-label="Casilla 5"></button>
+                <button class="cell" data-index="5" aria-label="Casilla 6"></button>
+                <button class="cell" data-index="6" aria-label="Casilla 7"></button>
+                <button class="cell" data-index="7" aria-label="Casilla 8"></button>
+                <button class="cell" data-index="8" aria-label="Casilla 9"></button>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <button id="restartGameBtn" class="cyber-button primary pulse">
+                ⚡ NUEVA PARTIDA
+            </button>
+        </div>
+
+        <!-- Cyber Particles Canvas -->
+        <canvas id="particlesCanvas" class="particles-canvas"></canvas>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
